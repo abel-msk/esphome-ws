@@ -1,0 +1,16 @@
+# vscode
+.trunk
+.vscode
+
+# MacOS files
+**/.DS_Store
+**/.idea
+
+build/
+
+**/.esphome
+**/build
+.venv
+**/__pycache__/
+**/secrets.yaml
+

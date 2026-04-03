@@ -61,7 +61,10 @@ globals:
     type: float
     restore_value: no
     initial_value: "-100" 
-  
+  - id: gIsDimerON
+    type: bool
+    restore_value: no
+    initial_value: "false"
 
 substitutions:
   displayRotation:          "270"
@@ -113,17 +116,6 @@ substitutions:
   bgRainNight:        "/bgwf/day_rain.png"
   bgSnowDay:          "/bgwf/day_snow.png"
   bgSnowNight:        "/bgwf/night_snow.png"
-
-
-  fTextOutTempBig:      "Inter_72"
-  fTextOutTempSmal:     "Inter_22"
-  fTextTimeBig:         "Inter_50"
-  fTextTimeSmal:        "Inter_17"
-  fWetherIco:           "gIcons_24"
-  fFrameTitle:          "Inter_12"
-  fFrameIcon:           "gIcons_18"
-  fFrameValue:          "Inter_24"
-
 
   tHomeFrTitle:         "В квартире"
   tHumFrTitle:          "Влажность"
@@ -221,7 +213,7 @@ sdmmc:
 
 font:
   - file: "gfonts://Material+Symbols+Outlined"
-    id: gIcons_18
+    id: fFrameIconFont
     size: 18
     glyphs: [
       "${iClearDay}",
@@ -241,7 +233,7 @@ font:
       ]
 
   - file: "gfonts://Material+Symbols+Outlined"
-    id: gIcons_24
+    id: fWetherIcoFont
     size: 24
     glyphs: [
       "${iClearDay}",
@@ -270,28 +262,28 @@ font:
 
 
   - file: "gfonts://Inter"
-    id: Inter_12
-    size: 12
+    id: fFrameTitleFont
+    size: 16
     bpp: 4
     glyphsets:
       - GF_Cyrillic_Core
 
   - file: "gfonts://Inter"
-    id: Inter_17
+    id: fTextTimeSmalFont
     size: 18
     bpp: 4
     glyphsets:
       - GF_Cyrillic_Core
 
   - file: "gfonts://Inter"
-    id: Inter_22
+    id: fTextOutTempSmalFont
     size: 22
     bpp: 4
     glyphsets:
       - GF_Cyrillic_Core
 
   - file: "gfonts://Inter"
-    id: Inter_24
+    id: fFrameValueFont
     size: 24
     bpp: 4
     glyphsets:
@@ -305,18 +297,30 @@ font:
       - GF_Cyrillic_Core
 
   - file: "gfonts://Inter"
-    id: Inter_50
-    size: 50
+    id: fTextTimeBigFont
+    size: 55
     bpp: 4
     glyphsets:
       - GF_Cyrillic_Core
 
-  - file: "gfonts://Inter"
-    id: Inter_72
+  - file: "gfonts://Inter@600"
+    id: fTextOutTempBigFont
     size: 72
     bpp: 4
     glyphsets:
       - GF_Cyrillic_Core
+ 
+  - file: "gfonts://Oswald@600"
+    id: fTextOutTempBigFont2
+    size: 72
+    bpp: 4
+    # glyphsets:
+    #   - GF_Cyrillic_Core
+    # "gfonts://Zen+Dots"
+    # Oswald
+    # Rubik
+    #Prompt
+
 
   - file: "gfonts://Material+Symbols+Outlined"
     id: mso_60
@@ -349,8 +353,8 @@ time:
           minutes: '*'
           then:
               - script.execute: cmdUpdateCalendar
-              - script.execute: backLight
-              - script.execute: night_dimmer
+              # - script.execute: backLight
+              - script.execute: nightDimDo
         # Every 10 minutes    
         - seconds: 0
           minutes: '/10'
@@ -365,37 +369,56 @@ time:
 
 script:
 
-  - id: backLight
-    then:
-      - lambda: |-
-          if ((id(netwotk_time).now().hour >= 0) && (id(netwotk_time).now().hour < 7)) {
-            id(gpio_backlight_pwm).set_level(0.1);
-            // ESP_LOGD("BackLight","Switch backlight to level:  0.2, Time hour %d",id(netwotk_time).now().hour);
-          }
-          else {
-            id(gpio_backlight_pwm).set_level(1);
-            // ESP_LOGD("BackLight","Switch backlight to level: 1, Time hour %d",id(netwotk_time).now().hour);
-          }   
-
-
-  - id: night_dimmer
+  - id: nightDimDo
     then:
       - if:
           condition:
             lambda: |- 
+              bool time_for_dim = false;
+              //
+              //  It is night now
+              //
               if ((id(netwotk_time).now().hour >= 0) && (id(netwotk_time).now().hour < 8)) {
-                return true;
+                time_for_dim = true;
               }
-              return false;
-          then:
+              //
+              //  Dimmer switched ON
+              //
+              else if ( id(gIsDimerON) ) {
+                time_for_dim = true;
+              }
+              //
+              //  It is day now
+              //
+              else {
+                time_for_dim = false;
+                }
+
+              return time_for_dim;
+
+          then:   #   Night mode
             - lvgl.widget.update:
                 id: night_curt
                 hidden: false
+            - output.set_level:
+                id: gpio_backlight_pwm
+                level: "10%"
+            - globals.set:
+                id: gIsDimerON
+                value: "true"
+            - logger.log: "Set dimmer ON"
                 
-          else:
+          else:   #   Day mode
             - lvgl.widget.update:
                 id: night_curt
                 hidden: true
+            - output.set_level:
+                id: gpio_backlight_pwm
+                level: "100%"
+            - globals.set:
+                id: gIsDimerON
+                value: "false"
+            - logger.log: "Set dimmer OFF"
 
   - id: cmdUpdateCalendar
     then:
@@ -541,7 +564,7 @@ local_image:
   
 image:
   # Background
-  - file: resources/bg/day_clear.png
+  - file: ../resources/bg/day_clear.png
     id: bgDayClear
     resize: 480x320
     type: RGB565
@@ -553,6 +576,28 @@ image:
   #   resize: 200x200
   #   type: RGB565
   #   transparency: alpha_channel
+
+
+
+switch:
+  - platform: template
+    id: dimmerSw
+    name: "Screen Dimmer"
+    lambda: |-
+        return id(gIsDimerON);
+    turn_on_action:
+      # - logger.log: "Switch turned OFF"
+      - globals.set:
+          id: gIsDimerON
+          value: "true"
+      - script.execute: nightDimDo
+
+    turn_off_action:
+      # - logger.log: "Switch turned ON"
+      - globals.set:
+          id: gIsDimerON
+          value: "false"
+      - script.execute: nightDimDo
 
 sensor:
   - platform: aht10
@@ -734,7 +779,7 @@ lvgl:
             align: TOP_LEFT
             x: 40
             y: 41
-            text_font: "${fWetherIco}"
+            text_font: fWetherIcoFont
             text: "${iClearDay}"
             text_color: cTextSecond
 
@@ -743,16 +788,16 @@ lvgl:
             align: TOP_LEFT
             x: 72
             y: 41
-            text_font: "${fTextOutTempSmal}"
+            text_font: fTextOutTempSmalFont
             text: "${tClearDay}" 
             text_color: cTextSecond 
 
-        - label:            # Wether Temperature 
+        - label:            # Big Wether Temperature 
             id: wetherTempNum  
             align: TOP_LEFT
-            x: 40
+            x: 25
             y: 82
-            text_font: "${fTextOutTempBig}"
+            text_font: fTextOutTempBigFont
             text: "--,-°" 
             text_color: cTextPrim
 
@@ -763,8 +808,8 @@ lvgl:
             id: curTime  
             align: TOP_RIGHT
             x: -23
-            y: 72
-            text_font: "${fTextTimeBig}"
+            y: 62
+            text_font: fTextTimeBigFont
             text: "--:--" 
             text_color: cTextPrim
 
@@ -773,7 +818,7 @@ lvgl:
             align: TOP_RIGHT
             x: -23
             y: 138
-            text_font: "${fTextTimeSmal}"
+            text_font: fTextTimeSmalFont
             text: "${w01}" 
             text_color: cTextSecond
 
@@ -782,8 +827,8 @@ lvgl:
             align: TOP_RIGHT
             x: -23
             y: 165
-            text_font: "${fTextTimeSmal}"
-            text: "2 Января 2025" 
+            text_font: fTextTimeSmalFont
+            text: "1 Января 1970" 
             text_color: cTextSecond
 
         #
@@ -807,23 +852,23 @@ lvgl:
             id: homeFrTitle
             x: 36
             y: 218
-            text_font: "${fFrameTitle}"
+            text_font: fFrameTitleFont
             text: "${tHomeFrTitle}" 
             text_color: cTextSecond
 
         - label:   #Frame Icon
             id: homeFrIcon
             x: 33
-            y: 242
-            text_font: "${fFrameIcon}"
+            y: 252
+            text_font: fFrameIconFont
             text: "${iTemp}" 
             text_color: cTextSecond
 
         - label:   #Frame Value
             id: homeFfValue
             x: 54
-            y: 240
-            text_font: "${fFrameValue}"
+            y: 250
+            text_font: fFrameValueFont
             text: "23,2°" 
             text_color: cTextSecond
 
@@ -846,23 +891,23 @@ lvgl:
             id: humFrTitle
             x: 189
             y: 218
-            text_font: "${fFrameTitle}"
+            text_font: fFrameTitleFont
             text: "${tHumFrTitle}" 
             text_color: cTextSecond
 
         - label:   #Frame Icon
             id: humFrIcon
             x: 189
-            y: 242
-            text_font: "${fFrameIcon}"
+            y: 252
+            text_font: fFrameIconFont
             text: "${iHumidity}" 
             text_color: cTextSecond
 
         - label:   #Frame Value
             id: humFrValue
             x: 210
-            y: 240
-            text_font: "${fFrameValue}"
+            y: 250
+            text_font: fFrameValueFont
             text: "70%" 
             text_color: cTextSecond
             
@@ -885,28 +930,27 @@ lvgl:
             id: pressFrTitle
             x: 343
             y: 218
-            text_font: "${fFrameTitle}"
+            text_font: fFrameTitleFont
             text: "${tPressFrTitle}" 
             text_color: cTextSecond
 
         - label:   #Frame Icon
             id: pressFrIcon
             x: 343
-            y: 242
-            text_font: "${fFrameIcon}"
+            y: 252
+            text_font: fFrameIconFont
             text: "${iPressure}" 
             text_color: cTextSecond
 
         - label:   #Frame Value
             id: pressFrValue
             x: 365
-            y: 240
-            text_font: "${fFrameValue}"
+            y: 250
+            text_font: fFrameValueFont
             text: "246mm" 
             text_color: cTextSecond
-        #  Night Dimmer  
-
-        - obj:
+ 
+        - obj:          #  Night Dimmer curtan
             id: night_curt
             x: 0
             y: 0

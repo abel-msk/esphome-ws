@@ -37,12 +37,12 @@ output:
     platform: ledc
     pin: 1
 
-light:
-  - id: backlight
-    name: Backlight
-    platform: monochromatic
-    output: gpio_backlight_pwm
-    restore_mode: ALWAYS_ON
+# light:
+#   - id: backlight
+#     name: Backlight
+#     platform: monochromatic
+#     output: gpio_backlight_pwm
+#     restore_mode: ALWAYS_ON
 
 display:
   - id: main_display

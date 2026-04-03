@@ -338,7 +338,7 @@ time:
           minutes: '*'
           then:
               - script.execute: cmdUpdateCalendar
-              - script.execute: backLight
+              # - script.execute: backLight
               - script.execute: night_dimmer
         # Every 10 minutes    
         - seconds: 0
@@ -354,18 +354,17 @@ time:
 
 script:
 
-  - id: backLight
-    then:
-      - lambda: |-
-          if ((id(netwotk_time).now().hour >= 0) && (id(netwotk_time).now().hour < 7)) {
-            id(gpio_backlight_pwm).set_level(0.1);
-            // ESP_LOGD("BackLight","Switch backlight to level:  0.2, Time hour %d",id(netwotk_time).now().hour);
-          }
-          else {
-            id(gpio_backlight_pwm).set_level(1);
-            // ESP_LOGD("BackLight","Switch backlight to level: 1, Time hour %d",id(netwotk_time).now().hour);
-          }   
-
+  # - id: backLight
+  #   then:
+  #     - lambda: |-
+  #         if ((id(netwotk_time).now().hour >= 0) && (id(netwotk_time).now().hour < 7)) {
+  #           id(gpio_backlight_pwm).set_level(0.1);
+  #           // ESP_LOGD("BackLight","Switch backlight to level:  0.2, Time hour %d",id(netwotk_time).now().hour);
+  #         }
+  #         else {
+  #           id(gpio_backlight_pwm).set_level(1);
+  #           // ESP_LOGD("BackLight","Switch backlight to level: 1, Time hour %d",id(netwotk_time).now().hour);
+  #         }   
 
   - id: night_dimmer
     then:

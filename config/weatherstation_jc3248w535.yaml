@@ -380,6 +380,8 @@ script:
               //
               if ((id(netwotk_time).now().hour >= 0) && (id(netwotk_time).now().hour < 8)) {
                 time_for_dim = true;
+                // Reset dmmer switch for be cleared at morning
+                id(gIsDimerON) = false;
               }
               //
               //  Dimmer switched ON
@@ -392,7 +394,7 @@ script:
               //
               else {
                 time_for_dim = false;
-                }
+              }
 
               return time_for_dim;
 
@@ -403,9 +405,9 @@ script:
             - output.set_level:
                 id: gpio_backlight_pwm
                 level: "10%"
-            - globals.set:
-                id: gIsDimerON
-                value: "true"
+            # - globals.set:
+            #     id: gIsDimerON
+            #     value: "true"
             - logger.log: "Set dimmer ON"
                 
           else:   #   Day mode
@@ -415,9 +417,9 @@ script:
             - output.set_level:
                 id: gpio_backlight_pwm
                 level: "100%"
-            - globals.set:
-                id: gIsDimerON
-                value: "false"
+            # - globals.set:
+            #     id: gIsDimerON
+            #     value: "false"
             - logger.log: "Set dimmer OFF"
 
   - id: cmdUpdateCalendar
